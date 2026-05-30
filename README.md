@@ -1,75 +1,89 @@
-# TD Prediction for Estimating the State-Value Function using FrozenLake Environment
+# Implementation-of-MC-prediction-for-estimating-the-action-value-function.
+
+## Date : 
 
 ## Aim
 
-To implement the Temporal Difference (TD) Prediction algorithm for estimating the state-value function in the FrozenLake environment using Reinforcement Learning.
+To implement the Monte Carlo (MC) Prediction algorithm for estimating the action-value function \(Q(s,a)\) using sampled episodes and to analyze the learned action values in a Grid World environment.
+
+---
+
+## Objective
+
+- To understand Monte Carlo Prediction for action-value estimation.
+- To estimate the action-value function \(Q(s,a)\).
+- To learn state-action values from complete episodes.
+- To evaluate the quality of actions under a given policy.
+
+---
+
+## Theory
+
+Monte Carlo Prediction is a model-free reinforcement learning technique used to estimate value functions directly from experience.
+
+The action-value function is defined as:
+
+\[
+Q(s,a) = E[G_t \mid S_t=s, A_t=a]
+\]
+
+Where:
+
+- \(Q(s,a)\) = Expected return for taking action \(a\) in state \(s\)
+- \(G_t\) = Discounted return after time step \(t\)
+
+Monte Carlo methods estimate action values by averaging returns obtained after visiting each state-action pair over many episodes.
 
 ---
 
 ## Algorithm
 
-### TD Prediction Algorithm
+### Monte Carlo Prediction for Action-Value Function
 
-1. Import the required libraries.
-2. Create the FrozenLake environment using OpenAI Gym.
-3. Initialize:
-   - Learning rate \( \alpha \)
-   - Discount factor \( \gamma \)
-   - Number of episodes
-   - State-value function \( V(s) \)
-4. Define a random policy for action selection.
-5. For each episode:
-   - Reset the environment.
-   - Repeat until the episode ends:
-     - Select an action using the policy.
-     - Perform the action and observe:
-       - Next state
-       - Reward
-       - Terminal condition
-     - Compute TD Target:
+1. Initialize:
+   - Action-value function \(Q(s,a)\)
+   - Returns list for every state-action pair
 
-\[
-TD\ Target = R + \gamma V(S')
-\]
+2. Generate an episode using a policy.
 
-     - Compute TD Error:
+3. For every state-action pair in the episode:
+   - Calculate the return \(G\)
+   - Store the return for that pair
+   - Update \(Q(s,a)\) using the average return
 
-\[
-TD\ Error = TD\ Target - V(S)
-\]
+4. Repeat the process for many episodes.
 
-     - Update the state-value function:
-
-\[
-V(S) = V(S) + \alpha \times TD\ Error
-\]
-
-     - Move to the next state.
-6. Print the estimated state values.
-7. Plot the state-value function using a histogram.
+5. Display the estimated action-value function.
 
 ---
 
 ## Program
 
-```
-import gymnasium as gym
+```python
+#Implementation of MC prediction for estimating the action-value function.
 import numpy as np
-import matplotlib.pyplot as plt
 from collections import defaultdict
+import gymnasium as gym
 
 env = gym.make("FrozenLake-v1", is_slippery=False)
 
-alpha = 0.1
 gamma = 0.9
 episodes = 5000
 
-V = defaultdict(float)
+# Action-value function
+Q = defaultdict(float)
 
+# Returns storage
+returns = defaultdict(list)
+
+# Random policy
 def policy(state):
     return env.action_space.sample()
 
-for ep in range(episodes):
+# Generate episode
+def generate_episode():
+
+    episode = []
 
     state, _ = env.reset()
 
@@ -83,32 +97,43 @@ for ep in range(episodes):
 
         done = terminated or truncated
 
-        td_target = reward + gamma * V[next_state]
-
-        td_error = td_target - V[state]
-
-        V[state] = V[state] + alpha * td_error
+        episode.append((state, action, reward))
 
         state = next_state
 
-print("\nTD State Value Function:\n")
+    return episode
 
-for s in range(env.observation_space.n):
-    print(f"State {s}: {V[s]:.4f}")
+# Monte Carlo Prediction
+for ep in range(episodes):
 
+    episode = generate_episode()
 
-states = list(range(env.observation_space.n))
-values = [V[s] for s in states]
+    G = 0
 
-plt.figure(figsize=(10,5))
+    visited_pairs = set()
 
-plt.bar(states, values)
+    # Traverse backward
+    for t in reversed(range(len(episode))):
 
-plt.xlabel("States")
-plt.ylabel("Estimated State Value")
-plt.title("TD Prediction State Value Function")
+        state, action, reward = episode[t]
 
-plt.show()
+        G = gamma * G + reward
+
+        # First-visit MC
+        if (state, action) not in visited_pairs:
+
+            returns[(state, action)].append(G)
+
+            Q[(state, action)] = np.mean(returns[(state, action)])
+
+            visited_pairs.add((state, action))
+
+# Print Q values
+print("\nAction Value Function:\n")
+
+for key in Q:
+    print(f"State-Action {key}: {Q[key]:.3f}")
+
 
 ```
 
@@ -116,38 +141,15 @@ plt.show()
 
 ## Output
 
-```
-TD State Value Function:
+<img width="424" height="499" alt="image" src="https://github.com/user-attachments/assets/08bcb67d-e236-44d2-8164-c2e3d2299bd2" />
+<img width="426" height="451" alt="image" src="https://github.com/user-attachments/assets/d05536ab-7e6f-475f-91b9-bb19200f9ec1" />
 
-State 0: 0.0033
-State 1: 0.0031
-State 2: 0.0067
-State 3: 0.0042
-State 4: 0.0041
-State 5: 0.0000
-State 6: 0.0286
-State 7: 0.0000
-State 8: 0.0125
-State 9: 0.0536
-State 10: 0.1057
-State 11: 0.0000
-State 12: 0.0000
-State 13: 0.1230
-State 14: 0.4612
-State 15: 0.0000
-
-```
-
----
-
-## Output Graph
-
-<img width="1062" height="587" alt="image" src="https://github.com/user-attachments/assets/530e6207-09db-4ad6-a271-247652b75c67" />
-
-The histogram displays the estimated state-value function for all states in the FrozenLake environment after TD learning.
 
 ---
 
 ## Result
 
-Thus, the TD Prediction algorithm was successfully implemented in the FrozenLake environment to estimate the state-value function. The agent learned the value of each state through continuous interaction with the environment using Temporal Difference learning.
+Thus, the Monte Carlo Prediction algorithm was successfully implemented for estimating the action-value function \(Q(s,a)\). The expected returns for different state-action pairs were calculated using sampled episodes generated from the environment.
+
+---
+
